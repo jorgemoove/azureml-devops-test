@@ -1,0 +1,10 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+experiment_name: demo-devops
+display_name: hello-devops
+code: .
+command: >
+  echo "Hello desde DevOps a Azure ML"
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+compute: azureml:cpu-cluster
