@@ -1,0 +1,31 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureServiceConnection: 'Conexion-AzureML-PurebaML'
+  resourceGroup: 'RscgrpMooveCars'
+  workspaceName: 'PurebaML'
+  location: 'northeurope'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+      addToPath: true
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install azureml-core azureml-sdk
+    displayName: 'Instalar dependencias Azure ML'
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(azureServiceConnection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        echo "📌 Verificando Workspace de Azure ML..."
+        az ml workspace show -w $(workspaceName) -g $(resourceGroup) --only-show-errors
