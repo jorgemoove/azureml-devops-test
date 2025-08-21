@@ -1,31 +1,46 @@
 trigger:
-  - main
+- main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 variables:
   azureServiceConnection: 'Conexion-AzureML-PurebaML'
   resourceGroup: 'RscgrpMooveCars'
   workspaceName: 'PurebaML'
-  location: 'northeurope'
 
 steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.10'
-      addToPath: true
+- task: AzureCLI@2
+  displayName: "Diagnóstico conexión Azure ML"
+  inputs:
+    azureSubscription: $(azureServiceConnection)
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      set -euo pipefail
+      set -x
 
-  - script: |
-      python -m pip install --upgrade pip
-      pip install azureml-core azureml-sdk
-    displayName: 'Instalar dependencias Azure ML'
+      echo "CLI version:"
+      az version
 
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: $(azureServiceConnection)
-      scriptType: bash
-      scriptLocation: inlineScript
-      inlineScript: |
-        echo "📌 Verificando Workspace de Azure ML..."
-        az ml workspace show -w $(workspaceName) -g $(resourceGroup) --only-show-errors
+      # Asegura auto-instalación de extensiones y la 'ml'
+      az config set extension.use_dynamic_install=yes_without_prompt
+      az extension add -n ml -y || az extension update -n ml || true
+
+      echo "Cuenta activa / contexto de login:"
+      az account show --query "{subscription:id, user:user, tenant:tenantId}"
+
+      echo "Listado rápido de RG para validar scope:"
+      az group list --query "[].name"
+
+      echo "Mostrar workspace AML:"
+      az ml workspace show \
+        --name "$(workspaceName)" \
+        --resource-group "$(resourceGroup)" \
+        --only-show-errors \
+        --query "{name:name, location:location, id:id}"
+
+      echo "✅ Conexión OK"
+
+  env:
+    AZURE_EXTENSION_USE_DYNAMIC_INSTALL: yes_without_prompt
